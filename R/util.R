@@ -8,30 +8,22 @@ pref_code <- function(jis_code) {
 
 #' Collect administration office point datasets.
 #'
-#' @param path path to N03 shapefile (if already exist)
-#' @import dplyr
+#' @param path path to P34 shapefile (if already exist)
 #' @import magrittr
-#' @importFrom geojsonio geojson_read
-#' @importFrom stringi stri_trim_both
+#' @importFrom sf read_sf
 collect_ksj_p34 <- function(path = NULL) {
 
-  address <- NULL
-
+  jis_code <- NULL
   code <- gsub(".+P34-14_|_GML|/", "", path)
 
-  d <- geojsonio::geojson_read(
+  d <- sf::read_sf(
     paste0(path, "/", list.files(path, pattern = paste0(code, ".shp$"))),
-    method           = "local",
-    what             = "sp",
-    stringsAsFactors = TRUE,
-    encoding         = "cp932")
-
-  d@data <- d@data %>%
-    bind_cols(as.data.frame(d@coords)) %>%
-    set_colnames(c("jis_code", "type", "name", "address", "longitude", "latitude")) %>%
-    rowwise() %>%
-    mutate(address = stringi::stri_trim_both(address)) %>%
-    ungroup()
+    stringsAsFactors = FALSE,
+    options = c(paste0("ENCODING=",
+                       dplyr::if_else(tolower(Sys.info()[["sysname"]]) == "windows",
+                                      "UTF8", "cp932")))
+  ) %>% set_colnames(c("jis_code", "type", "name", "address", "geometry")) %>%
+    dplyr::mutate(jis_code = as.factor(jis_code))
 
   return(d)
 
@@ -40,15 +32,18 @@ collect_ksj_p34 <- function(path = NULL) {
 #' Bind city area polygons to prefecture polygon
 #'
 #' @param path path to N03 shapefile (if already exist)
-#' @importFrom geojsonio geojson_read
+#' @importFrom sf read_sf
 bind_cityareas <- function(path = NULL) {
 
   pref.shp <- NULL
 
-  pref.shp <- geojsonio::geojson_read(list.files(path, pattern = "shp$", full.names = TRUE),
-                                      method           = "local",
-                                      what             = "sp",
-                                      stringsAsFactors = TRUE)
+  pref.shp <- sf::read_sf(
+    list.files(path, pattern = "shp$", full.names = TRUE),
+    stringsAsFactors = FALSE,
+    options = c(paste0("ENCODING=",
+                       dplyr::if_else(tolower(Sys.info()[["sysname"]]) == "windows",
+                                      "UTF8", "cp932"))))
+
   res <- raw_bind_cityareas(pref.shp)
 
   return(res)
@@ -57,19 +52,18 @@ bind_cityareas <- function(path = NULL) {
 #' Intermediate function
 #'
 #' @param pref.shp geojsonio object (prefecture shapefile)
-#' @import spdplyr
-#' @importFrom dplyr mutate
-#' @importFrom dplyr select
-#' @importFrom rmapshaper ms_dissolve
+#' @import dplyr
+#' @import sf
+#' @importFrom tibble as_data_frame
 raw_bind_cityareas <- function(pref.shp) {
-  rmapshaperid <- NULL
 
-  d.merge <- rmapshaper::ms_dissolve(pref.shp)
+  pref_name <- jiscode <- geometry <- NULL
 
-  res <- d.merge %>%
+  res <- st_union(pref.shp) %>%
+    tibble::as_data_frame() %>%
     mutate(pref_name = pref.shp$pref_name[1],
            jiscode  = as.numeric(substr(pref.shp$city_code[1], 1, 2))) %>%
-    select(-rmapshaperid)
+    select(pref_name, jiscode, geometry)
 
   return(res)
 }
@@ -111,7 +105,7 @@ path_ksj_cityarea <- function(code = NULL, path = NULL) {
 
       utils::download.file(paste0("http://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-15/N03-150101_", pref.identifer, "_GML.zip"),
                     destfile = dest.path,
-                    method   = "wget",
+                    method   = "auto",
                     quiet    = TRUE)
       utils::unzip(zipfile = dest.path,
                    exdir   = extract.path)
@@ -155,28 +149,30 @@ collect_prefcode <- function(code = NULL, admin_name = NULL) {
 #' Collect administration area
 #'
 #' @param path path to N03 shapefile (if already exist)
-#' @importFrom dplyr mutate
-#' @importFrom dplyr rename
-#' @importFrom dplyr select
-#' @importFrom geojsonio geojson_read
+#' @import dplyr
+#' @import sf
 #' @importFrom stringi stri_trim_both
+#' @importFrom stringi stri_conv
 collect_cityarea <- function(path = NULL) {
 
-  N03_001 <- N03_002 <- N03_003 <- N03_004 <- N03_007 <- tmp_var <- NULL
+  . <- N03_001 <- N03_002 <- N03_003 <- N03_004 <- N03_007 <- tmp_var <- NULL
   pref_name <- city_name_ <- city_name <- city_name_full <- city_code <- NULL
 
-  res <- geojsonio::geojson_read(list.files(path, pattern = "shp$", full.names = TRUE, recursive = TRUE),
-                          method           = "local",
-                          what             = "sp",
-                          stringsAsFactors = TRUE) %>%
-    select(-N03_002) %>%
-    mutate(N03_001 = as.character(N03_001),
-           N03_003 = as.character(N03_003),
-           N03_004 = as.character(N03_004),
-           tmp_var = ifelse(is.na(N03_003), "", N03_003),
+  res <- sf::read_sf(list.files(path, pattern = "shp$", full.names = TRUE, recursive = TRUE),
+                     stringsAsFactors = FALSE,
+                     options = c(paste0("ENCODING=",
+                                        dplyr::if_else(tolower(Sys.info()[["sysname"]]) == "windows",
+                                                       "UTF8", "cp932")))
+                     ) %>%
+    mutate(tmp_var = if_else(is.na(N03_003), "", N03_003),
            city_name_full = stringi::stri_trim_both(gsub("NA", "", paste(tmp_var, N03_004)))) %>%
-    rename(pref_name = N03_001, city_name_ = N03_003, city_name = N03_004, city_code = N03_007) %>%
-    select(pref_name, city_name_, city_name, city_name_full, city_code)
+    rename(pref_name = N03_001,
+           city_name_ = N03_003, city_name = N03_004, city_code = N03_007) %>%
+    select(pref_name,
+           city_name_, city_name, city_name_full, city_code) %>%
+    mutate_at(.vars = vars(contains("name")), stringi::stri_conv, to = "UTF8") %>%
+    sf::st_simplify(preserveTopology = FALSE, dTolerance = 0.001) %>%
+    filter(!is.na(st_dimension(.)))
 
   return(res)
 }
@@ -185,8 +181,10 @@ collect_cityarea <- function(path = NULL) {
 #' Intermediate function
 #'
 #' @param code prefecture code (JIS X 0402)
-#' @param path path to N03 shapefile (if already exist)
+#' @param path path to P34 shapefile (if already exist)
 #' @importFrom readr read_rds
+#' @importFrom utils download.file
+#' @importFrom utils unzip
 read_ksj_p34 <- function(code = NULL, path = NULL) {
 
   if (missing(path)) {
@@ -196,10 +194,10 @@ read_ksj_p34 <- function(code = NULL, path = NULL) {
 
     if (is.null(path) & file.exists(paste(tempdir(), df.dl.url$dest_file[code], sep = "/")) == FALSE) {
 
-      download.file(df.dl.url$zipFileUrl[code],
+      utils::download.file(df.dl.url$zipFileUrl[code],
                     destfile = paste(tempdir(), df.dl.url$dest_file[code], sep = "/"),
-                    method = "wget")
-      unzip(zipfile = paste(tempdir(), df.dl.url$dest_file[code], sep = "/"),
+                    method = "auto")
+      utils::unzip(zipfile = paste(tempdir(), df.dl.url$dest_file[code], sep = "/"),
             exdir   = paste(tempdir(), gsub(".zip", "", df.dl.url$dest_file[code]),  sep = "/"))
 
       path = paste(tempdir(), gsub(".zip", "", df.dl.url$dest_file[code]),  sep = "/")

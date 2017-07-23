@@ -41,7 +41,6 @@ spdf_jpn_pref <- function(code = NULL, admin_name = NULL, district = TRUE, downl
 #' @description City area polygon data. When an administrative name (jis_code_city) or code (jis_code_city)
 #' is specified as an argument, the target city data is extracted. If neither is given,
 #' it becomes the data of the target prefecture.
-#' @import spdplyr
 #' @importFrom dplyr filter
 #' @param jis_code_pref jis code from 1 to 47
 #' @param jis_code_city jis code for city as jis_code_pref + identifier number
@@ -61,7 +60,7 @@ spdf_jpn_cities <- function(jis_code_pref, jis_code_city = NULL, admin_name = NU
   } else if (missing(admin_name)) {
     d <- dplyr::filter(d, city_code %in% jis_code_city)
   } else if (missing(jis_code_city)) {
-    d <- dplyr::filter(d, grepl(admin_name, city_name_full))
+    d <- dplyr::filter(d, city_name_full %in% admin_name)
   }
 
   return(d)
