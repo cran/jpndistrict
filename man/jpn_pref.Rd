@@ -8,22 +8,24 @@ jpn_pref(pref_code, admin_name, district = TRUE, download = FALSE,
   drop_sinkyokyoku = TRUE)
 }
 \arguments{
-\item{pref_code}{jis code from 1 to 47 (integer)}
+\item{pref_code}{jis code from 1 to 47}
 
 \item{admin_name}{prefecture names (string)}
 
-\item{district}{logical (default TRUE)}
+\item{district}{logical (default \emph{TRUE})}
 
-\item{download}{logical (default FALSE).}
+\item{download}{logical (default \emph{FALSE}).}
 
-\item{drop_sinkyokyoku}{if TRUE, drop sichyo_sinkyokyoku variable (default TRUE)}
+\item{drop_sinkyokyoku}{if \emph{TRUE}, drop sichyo_sinkyokyoku variable
+(default \emph{TRUE})}
 }
 \description{
 Prefecture polygon data.
 }
 \details{
-Collect unit of prefecture simple feature data.frame objects.. If downalod argument is TRUE,
-download administrative area data from the National Land Numeral Information Download Service (for law data).
+Collect unit of prefecture simple feature data.frame objects..
+If downalod argument is \emph{TRUE}, download administrative area data from
+the National Land Numeral Information Download Service (for law data).
 }
 \examples{
 \dontrun{

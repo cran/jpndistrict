@@ -7,7 +7,8 @@
 jpn_cities(jis_code, admin_name)
 }
 \arguments{
-\item{jis_code}{jis code for prefecture and city identifical number}
+\item{jis_code}{jis code for prefecture and city identifical number.
+If prefecture, must be from 1 to 47. If city, range of 5 digits.}
 
 \item{admin_name}{administration name}
 }
@@ -17,7 +18,11 @@ is specified as an argument, the target city data is extracted. If neither is gi
 it becomes the data of the target prefecture.
 }
 \examples{
+jpn_cities(jis_code = "08",
+  admin_name = intToUtf8(c(12388, 12367, 12400, 24066)))
+
 jpn_cities(jis_code = 33103)
+jpn_cities(jis_code = "33103")
 jpn_cities(jis_code = c(33103, 33104, 33205))
 jpn_cities(jis_code = c(33103, 34107))
 }

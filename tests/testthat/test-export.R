@@ -1,6 +1,8 @@
 context("test-export.R")
 
 d <- mesh_district(jis_code = 33101)
+d2 <- mesh_district(jis_code = 14401)
+d3 <- mesh_district(jis_code = "08")
 
 test_that("mesh_district", {
   expect_is(
@@ -9,7 +11,11 @@ test_that("mesh_district", {
   )
   expect_equal(
     dim(d),
-    c(11264L, 6L)
+    c(511L, 6L)
+  )
+  expect_equal(
+    dim(d2),
+    c(54L, 6L)
   )
   expect_named(
     d,
@@ -18,4 +24,5 @@ test_that("mesh_district", {
       "geometry"
     )
   )
+  expect_equal(dim(d3), c(6247, 6))
 })

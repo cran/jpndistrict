@@ -1,11 +1,31 @@
 context("utilities")
 
-test_that("return prefecture jis code as string", {
-  test <-
-    pref_code(33)
-  expect_is(test, "character")
-  expect_equal(test, "33")
-  expect_equal(pref_code(jis_code = 2), "02")
+test_that("Administration code varidation", {
+
+  expect_equal(
+    admins_code_validate(1),
+    list(administration_type = "prefecture", code = "01")
+  )
+  expect_identical(
+    admins_code_validate(1),
+    admins_code_validate("1")
+  )
+  expect_error(
+    admins_code_validate(48)
+  )
+  expect_length(
+    sapply(1:47, admins_code_validate),
+    94L
+  )
+  expect_equal(
+    admins_code_validate("33103"),
+    list(administration_type = "city", code = "33103")
+  )
+  expect_error(
+    admins_code_validate("49999"),
+    "x must be start a integer or as character from 1 to 47."
+  )
+
 })
 
 test_that("return prefecture jis code as string", {
@@ -55,4 +75,16 @@ test_that("reverge-geo coding", {
   expect_s3_class(test$spdf, c("tbl"))
   expect_gte(nrow(test$spdf), 1L)
   expect_type(test$which, "integer")
+})
+
+test_that("input geometry", {
+
+  # expect_null(sfg_point_as_coords(geometry = NULL))
+
+  skip_if_not_installed("sf")
+  test <-
+    sfg_point_as_coords(sf::st_point(c(130.4412895, 30.2984335)))
+  expect_is(test, "list")
+  expect_named(test, c("longitude", "latitude"))
+
 })

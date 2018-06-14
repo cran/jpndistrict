@@ -1,9 +1,28 @@
-#' Get prefecture code from jis code
+#' Administration code varidation
 #'
-#' @param jis_code jis code
-pref_code <- function(jis_code) {
-  res <- sprintf("%02d", as.numeric(substr(jis_code, 1, 2)))
-  return(res)
+#' @param jis_code jis code for prefecture and city identifical number.
+#' If prefecture, must be from 1 to 47. If city, range of 5 digits.
+admins_code_validate <- function(jis_code) {
+
+  x <- as.numeric(jis_code)
+
+  codes <-
+    sapply(1:47, sprintf, fmt = "%02d")
+
+  code <- codes[codes %in% substr(sprintf("%02d", x), 1, 2)]
+
+  if (identical(code, character(0)) == FALSE) {
+    if (nchar(x) >= 1 && nchar(x) <= 2) {
+      administration_type <- "prefecture"
+    } else if (nchar(x) == 5) {
+      administration_type <- "city"
+      code <- as.character(x)
+    }} else {
+      rlang::abort("x must be start a integer or as character from 1 to 47.")
+    }
+
+  list(administration_type = administration_type,
+       code = code)
 }
 
 #' Collect administration office point datasets.
@@ -143,7 +162,7 @@ collect_prefcode <- function(code = NULL, admin_name = NULL) {
 
   if (missing(admin_name)) {
     pref_code <-
-      dplyr::filter(jpnprefs, jis_code == pref_code(code)) %>%
+      dplyr::filter(jpnprefs, jis_code == admins_code_validate(code)$code) %>%
       magrittr::use_series(jis_code)
   } else if (missing(code)) {
     pref_code <-
@@ -259,6 +278,8 @@ read_ksj_p34 <- function(pref_code = NULL, path = NULL) {
 #' @name which_pol_min
 which_pol_min <- function(longitude, latitude, ...) {
 
+  pref_code <- NULL
+
   pref_code_chr <-
     find_prefs(longitude = longitude, latitude = latitude) %>%
     magrittr::use_series(pref_code)
@@ -288,7 +309,6 @@ which_pol_min <- function(longitude, latitude, ...) {
   list(spdf = sp_polygon, which = which_row)
 }
 
-
 crs_4326 <-
   structure(list(epsg = 4326L,
                  proj4string = "+proj=longlat +datum=WGS84 +no_defs"),
@@ -305,4 +325,12 @@ tweak_sf_output <- function(target) {
     tibble::as_tibble() %>% sf::st_sf()
 
   return(res)
+}
+
+sfg_point_as_coords <- function(geometry) {
+
+  if (sf::st_is(geometry, "POINT")) {
+      list(longitude = sf::st_coordinates(geometry)[1],
+           latitude =  sf::st_coordinates(geometry)[2])
+    }
 }
