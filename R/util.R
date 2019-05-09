@@ -1,30 +1,3 @@
-#' Administration code varidation
-#'
-#' @param jis_code jis code for prefecture and city identifical number.
-#' If prefecture, must be from 1 to 47. If city, range of 5 digits.
-admins_code_validate <- function(jis_code) {
-
-  x <- as.numeric(jis_code)
-
-  codes <-
-    sapply(1:47, sprintf, fmt = "%02d")
-
-  code <- codes[codes %in% substr(sprintf("%02d", x), 1, 2)]
-
-  if (identical(code, character(0)) == FALSE) {
-    if (nchar(x) >= 1 && nchar(x) <= 2) {
-      administration_type <- "prefecture"
-    } else if (nchar(x) == 5) {
-      administration_type <- "city"
-      code <- as.character(x)
-    }} else {
-      rlang::abort("x must be start a integer or as character from 1 to 47.")
-    }
-
-  list(administration_type = administration_type,
-       code = code)
-}
-
 #' Collect administration office point datasets.
 #'
 #' @param path path to P34 shapefile (if already exist)
@@ -67,14 +40,14 @@ raw_bind_cityareas <- function(pref) {
     suppressWarnings(
       tmp_union %>%
         dplyr::mutate(
-          jis_code  = as.numeric(substr(pref$city_code[1], 1, 2)),
+          pref_code  = as.numeric(substr(pref$city_code[1], 1, 2)),
           prefecture = pref$prefecture[1]
         ) %>%
         sf::st_sf() %>%
         sf::st_buffer(dist = 0.001)
     ) %>%
       dplyr::select(
-        jis_code = 1,
+        pref_code = 1,
         prefecture = 2,
         geometry = 3
       )
@@ -122,7 +95,7 @@ path_ksj_cityarea <- function(code = NULL, path = NULL) {
     if (is.null(path) & file.exists(dest.path) == FALSE) {
       utils::download.file(
         paste0(
-          "http://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-15/N03-150101_",
+          "http://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-2015/N03-150101_",
           pref.identifer,
           "_GML.zip"
         ),
@@ -155,19 +128,19 @@ path_ksj_cityarea <- function(code = NULL, path = NULL) {
 #' @description Get prefecture code from prefecture of name or number.
 #' @param code numeric
 #' @param admin_name prefecture code for Japanese (character)
-#' @importFrom magrittr use_series
-#' @importFrom dplyr filter
+#' @importFrom dplyr filter mutate pull
+#' @importFrom purrr pmap_chr
 collect_prefcode <- function(code = NULL, admin_name = NULL) {
-  jis_code <- prefecture <- NULL
+  . <- jis_code <- prefecture <- NULL
 
   if (missing(admin_name)) {
     pref_code <-
-      dplyr::filter(jpnprefs, jis_code == admins_code_validate(code)$code) %>%
-      magrittr::use_series(jis_code)
+      dplyr::filter(jpnprefs, jis_code == code_validate(code)$code) %>%
+      dplyr::pull(jis_code)
   } else if (missing(code)) {
     pref_code <-
       dplyr::filter(jpnprefs, prefecture == admin_name) %>%
-      magrittr::use_series(jis_code)
+      dplyr::pull(jis_code)
   }
 
   return(pref_code)
@@ -282,7 +255,7 @@ which_pol_min <- function(longitude, latitude, ...) {
 
   pref_code_chr <-
     find_prefs(longitude = longitude, latitude = latitude) %>%
-    magrittr::use_series(pref_code)
+    dplyr::pull(pref_code)
 
   sp_polygon <- NULL
   which_row  <- integer(0)
@@ -295,15 +268,26 @@ which_pol_min <- function(longitude, latitude, ...) {
       purrr::map(jpn_pref) %>%
       purrr::reduce(rbind)
 
+    x <-
+      sf::st_point(c(longitude, latitude), dim = "XY")
+
     which_row <-
       suppressMessages(grep(
         TRUE,
         sf::st_intersects(sp_polygon,
-                          sf::st_point(c(
-                            longitude, latitude
-                          ), dim = "XY"),
+                          x,
                           sparse = FALSE)
       ))
+
+    if (length(which_row) > 1) {
+      which_row <-
+        which.min(sf::st_distance(st_sfc(x, crs = 4326),
+                                  sp_polygon,
+                                  by_element = TRUE))
+
+      sp_polygon <-
+        jpn_pref(pref_code = which_row)
+    }
   }
 
   list(spdf = sp_polygon, which = which_row)
@@ -333,4 +317,22 @@ sfg_point_as_coords <- function(geometry) {
       list(longitude = sf::st_coordinates(geometry)[1],
            latitude =  sf::st_coordinates(geometry)[2])
     }
+}
+
+collapse_int2utf8 <- function(var) {
+  paste(intToUtf8(var, multiple = TRUE), collapse = "")
+}
+
+export_pref_80km_mesh <- function(code, ...) {
+
+  meshcode <- NULL
+
+  sf_pref <- jpn_pref(pref_code = code)
+
+  res <- suppressMessages(jpmesh::sf_jpmesh %>%
+                            sf::st_join(sf_pref, sf::st_overlaps, left = FALSE) %>%
+                            dplyr::pull(meshcode) %>%
+                            unique())
+
+  return(res)
 }

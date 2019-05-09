@@ -1,9 +1,9 @@
 #' Detect prefecture by coordinates
 #'
 #' @inheritParams find_city
-#' @importFrom dplyr mutate select right_join
-#' @importFrom purrr set_names
-#' @importFrom sf st_is st_point
+#' @importFrom dplyr arrange mutate select slice right_join
+#' @importFrom purrr pmap_dbl set_names
+#' @import sf
 #' @note The `find_pref` function was added in version 0.3.0
 #' @examples
 #' \dontrun{
@@ -15,7 +15,7 @@
 #' }
 #' @export
 find_pref <- function(longitude, latitude, geometry = NULL, ...) {
-  pref_code <- prefecture <- city_code <- NULL
+  . <- pref_code <- prefecture <- city_code <- dist <- NULL
 
   if (!is.null(geometry)) {
     if (sf::st_is(geometry, "POINT")) {
@@ -28,6 +28,23 @@ find_pref <- function(longitude, latitude, geometry = NULL, ...) {
 
   res <- find_city(longitude, latitude, ...)
   if (!is.null(res)) {
+    if (nrow(res) > 1) {
+      res <-
+        res %>%
+        dplyr::mutate(dist = purrr::pmap_dbl(
+          ., ~
+            sf::st_distance(sf::st_centroid(..4) %>%
+                              sf::st_sfc(crs = 4326),
+                                             sf::st_point(c(longitude, latitude)) %>%
+                                               sf::st_sfc(crs = 4326), by_element = TRUE)))
+
+      res <-
+        res %>%
+        dplyr::arrange(dist) %>%
+        dplyr::slice(1L) %>%
+        dplyr::select(-dist)
+    }
+
     df_tmp <- res %>%
       dplyr::mutate(pref_code = substr(city_code, 1, 2)) %>%
       dplyr::select(pref_code, prefecture)
@@ -35,7 +52,7 @@ find_pref <- function(longitude, latitude, geometry = NULL, ...) {
       dplyr::right_join(jpn_pref(pref_code = df_tmp$pref_code,
                                  district = FALSE) %>%
                           sf::st_set_geometry(NULL),
-                        by = c(pref_code = "jis_code", "prefecture")) %>%
+                        by = c("pref_code", "prefecture")) %>%
       purrr::set_names(c("pref_code", "prefecture", "geometry")) %>%
       dplyr::mutate(pref_code = sprintf("%02d", as.numeric(pref_code))) %>%
       tweak_sf_output()
@@ -47,8 +64,8 @@ find_pref <- function(longitude, latitude, geometry = NULL, ...) {
 #'
 #' @inheritParams find_city
 #' @importFrom jpmesh coords_to_mesh
-#' @importFrom dplyr filter inner_join select
-#' @importFrom purrr set_names
+#' @importFrom dplyr filter inner_join select mutate
+#' @importFrom purrr pmap_chr set_names
 #' @importFrom tibble as_tibble
 #' @examples
 #' \dontrun{
@@ -62,7 +79,7 @@ find_pref <- function(longitude, latitude, geometry = NULL, ...) {
 #' @name find_prefs
 #' @export
 find_prefs <- function(longitude, latitude, geometry = NULL) {
-  prefcode <- jis_code <- meshcode <- prefecture <- region <- NULL
+  . <- prefcode <- jis_code <- meshcode <- prefecture <- region <- NULL
 
   if (!is.null(geometry)) {
     if (sf::st_is(geometry, "POINT")) {
@@ -73,7 +90,8 @@ find_prefs <- function(longitude, latitude, geometry = NULL) {
     }
   }
 
-  jpnprefs <- jpnprefs %>%
+  jpnprefs <-
+    jpnprefs %>%
     dplyr::select(jis_code, prefecture, region)
 
   res <-
@@ -125,28 +143,30 @@ find_city <- function(longitude, latitude, geometry = NULL, ...) {
 
   if (identical(pol_min$which, integer(0)) == TRUE) {
     # not found
-    message(intToUtf8(
-      c(
-        25351,
-        23450,
-        12375,
-        12383,
-        24231,
-        27161,
-        12364,
-        12509,
-        12522,
-        12468,
-        12531,
-        12395,
-        21547,
-        12414,
-        12428,
-        12414,
-        12379,
-        12435
-      )
-    ))
+    rlang::inform(
+      enc2native(intToUtf8(
+        c(
+          25351,
+          23450,
+          12375,
+          12383,
+          24231,
+          27161,
+          12364,
+          12509,
+          12522,
+          12468,
+          12531,
+          12395,
+          21547,
+          12414,
+          12428,
+          12414,
+          12379,
+          12435
+        ), multiple = FALSE
+      ))
+    )
   } else {
     res <- pol_min$spdf[pol_min$which, ] %>%
       dplyr::select(prefecture, city_code, city, geometry)

@@ -1,9 +1,8 @@
 #' Export district's mesh polygon
 #'
-#' @inheritParams admins_code_validate
-#' @importFrom dplyr filter mutate select everything
+#' @inheritParams code_validate
+#' @importFrom dplyr filter mutate select everything pull
 #' @importFrom jpmesh fine_separate mesh_to_coords
-#' @importFrom magrittr use_series
 #' @importFrom purrr map set_names pmap
 #' @importFrom sf st_intersects st_sf
 #' @importFrom tibble as_data_frame tibble
@@ -19,7 +18,7 @@ mesh_district <- function(jis_code = NULL) {
   . <- res_contains <- meshcode <- NULL
 
   input_code <-
-    admins_code_validate(jis_code)
+    code_validate(jis_code)
 
   if (input_code$administration_type == "prefecture") {
     sf_admins <- jpn_pref(pref_code = input_code$code)
@@ -37,7 +36,7 @@ mesh_district <- function(jis_code = NULL) {
   df_pref10km_mesh <- jpmesh::sf_jpmesh[df_tmp %>%
                                           dplyr::filter(res_contains != 0) %>%
                                           tidyr::unnest() %>%
-                                          magrittr::use_series(id) %>%
+                                          dplyr::pull(id) %>%
                                           unique(), ] %>%
     .$meshcode %>%
     purrr::map(jpmesh::fine_separate) %>%
@@ -61,7 +60,7 @@ mesh_district <- function(jis_code = NULL) {
     df_pref10km_mesh[df_tmp %>%
                 dplyr::filter(res_contains != 0) %>%
                        tidyr::unnest() %>%
-                       magrittr::use_series(id) %>%
+                       dplyr::pull(id) %>%
                        unique(), ] %>%
     .$meshcode %>%
     purrr::map(jpmesh::fine_separate) %>%
@@ -84,7 +83,7 @@ mesh_district <- function(jis_code = NULL) {
   df_pref1km_mesh[df_tmp %>%
                      dplyr::filter(res_contains != 0) %>%
                      tidyr::unnest() %>%
-                     magrittr::use_series(id) %>%
+                     dplyr::pull(id) %>%
                      unique(), ]
 
 }
