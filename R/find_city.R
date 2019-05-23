@@ -3,6 +3,7 @@
 #' @inheritParams find_city
 #' @importFrom dplyr arrange mutate select slice right_join
 #' @importFrom purrr pmap_dbl set_names
+#' @importFrom rlang is_false is_null
 #' @import sf
 #' @note The `find_pref` function was added in version 0.3.0
 #' @examples
@@ -17,7 +18,7 @@
 find_pref <- function(longitude, latitude, geometry = NULL, ...) {
   . <- pref_code <- prefecture <- city_code <- dist <- NULL
 
-  if (!is.null(geometry)) {
+  if (rlang::is_false(rlang::is_null(geometry))) {
     if (sf::st_is(geometry, "POINT")) {
       coords <-
         sfg_point_as_coords(geometry = geometry)
@@ -27,7 +28,7 @@ find_pref <- function(longitude, latitude, geometry = NULL, ...) {
   }
 
   res <- find_city(longitude, latitude, ...)
-  if (!is.null(res)) {
+  if (rlang::is_false(rlang::is_null(res))) {
     if (nrow(res) > 1) {
       res <-
         res %>%
@@ -35,8 +36,9 @@ find_pref <- function(longitude, latitude, geometry = NULL, ...) {
           ., ~
             sf::st_distance(sf::st_centroid(..4) %>%
                               sf::st_sfc(crs = 4326),
-                                             sf::st_point(c(longitude, latitude)) %>%
-                                               sf::st_sfc(crs = 4326), by_element = TRUE)))
+                            sf::st_point(c(longitude, latitude)) %>%
+                              sf::st_sfc(crs = 4326),
+                            by_element = TRUE)))
 
       res <-
         res %>%
@@ -45,15 +47,13 @@ find_pref <- function(longitude, latitude, geometry = NULL, ...) {
         dplyr::select(-dist)
     }
 
-    df_tmp <- res %>%
-      dplyr::mutate(pref_code = substr(city_code, 1, 2)) %>%
-      dplyr::select(pref_code, prefecture)
-    res <- df_tmp %>%
-      dplyr::right_join(jpn_pref(pref_code = df_tmp$pref_code,
-                                 district = FALSE) %>%
-                          sf::st_set_geometry(NULL),
-                        by = c("pref_code", "prefecture")) %>%
-      purrr::set_names(c("pref_code", "prefecture", "geometry")) %>%
+    res <-
+      jpn_pref(pref_code = res %>%
+                 dplyr::mutate(pref_code = substr(city_code, 1, 2)) %>%
+                 dplyr::select(pref_code, prefecture) %>%
+                 sf::st_drop_geometry() %>%
+                 pull(pref_code),
+                    district = FALSE) %>%
       dplyr::mutate(pref_code = sprintf("%02d", as.numeric(pref_code))) %>%
       tweak_sf_output()
     return(res)
@@ -79,9 +79,9 @@ find_pref <- function(longitude, latitude, geometry = NULL, ...) {
 #' @name find_prefs
 #' @export
 find_prefs <- function(longitude, latitude, geometry = NULL) {
-  . <- prefcode <- jis_code <- meshcode <- prefecture <- region <- NULL
+  prefcode <- jis_code <- meshcode <- prefecture <- region <- NULL
 
-  if (!is.null(geometry)) {
+  if (rlang::is_false(rlang::is_null(geometry))) {
     if (sf::st_is(geometry, "POINT")) {
       coords <-
         sfg_point_as_coords(geometry = geometry)
@@ -143,30 +143,7 @@ find_city <- function(longitude, latitude, geometry = NULL, ...) {
 
   if (identical(pol_min$which, integer(0)) == TRUE) {
     # not found
-    rlang::inform(
-      enc2native(intToUtf8(
-        c(
-          25351,
-          23450,
-          12375,
-          12383,
-          24231,
-          27161,
-          12364,
-          12509,
-          12522,
-          12468,
-          12531,
-          12395,
-          21547,
-          12414,
-          12428,
-          12414,
-          12379,
-          12435
-        ), multiple = FALSE
-      ))
-    )
+    rlang::inform("Specified coordinates are not included in the polygon.")
   } else {
     res <- pol_min$spdf[pol_min$which, ] %>%
       dplyr::select(prefecture, city_code, city, geometry)
