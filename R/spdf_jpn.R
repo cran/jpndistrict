@@ -23,9 +23,8 @@ jpn_pref <- function(pref_code,
                      district         = TRUE,
                      download         = FALSE,
                      drop_sinkyokyoku = TRUE) {
-
-  city_code <- city_name <- city_name_ <- city_name_full <- NULL
-  . <- geometry <- pref_name <- NULL
+  city_code <- city_name <- city_name_ <- city_name_full <- NULL # nolint
+  . <- geometry <- pref_name <- NULL # nolint
 
     if (missing(admin_name)) {
       pref_code <- collect_prefcode(code = pref_code)
@@ -35,14 +34,14 @@ jpn_pref <- function(pref_code,
 
   if (download == FALSE) {
     d <- readRDS(system.file(paste0("extdata/ksj_n03/pref_", pref_code, ".rds"),
-                             package = "jpndistrict"))
-
+                             package = "jpndistrict")) %>%
+      decode.sfencoded()
   } else {
     d <-
       read_ksj_cityarea(code = as.numeric(pref_code)) %>%  # nocov
       dplyr::mutate(pref_code = as.character(pref_code),
                     city_name_full = purrr::pmap_chr(.,
-                                                     ~ cityname_reform(..4))) %>%
+                                                     ~ cityname_reform(..4))) %>% # nolint
       dplyr::select(pref_code, pref_name,
                     city_code, city = city_name_full,
                     city_name_, city_name, geometry)
@@ -58,18 +57,16 @@ jpn_pref <- function(pref_code,
     res <- raw_bind_cityareas(d) %>%
       dplyr::mutate(pref_code = as.character(pref_code))
   }
-
-  res <- res %>%
+  res %>%
     tweak_sf_output()
-
-  return(res)
 }
 
 
 #' Simple features for city area polygons
 #'
-#' @description City area polygon data. When an administrative name (jis_code_city) or code (jis_code_city)
-#' is specified as an argument, the target city data is extracted. If neither is given,
+#' @description City area polygon data. When an administrative name
+#' (jis_code_city) or code (jis_code_city) is specified as an argument,
+#' the target city data is extracted. If neither is given,
 #' it becomes the data of the target prefecture.
 #' @importFrom dplyr filter
 #' @inheritParams code_validate
@@ -95,7 +92,7 @@ jpn_cities <- function(jis_code, admin_name) {
     unique() %>%
     purrr::map(~ jpn_pref(pref_code = .x, district = TRUE)) %>%
     purrr::reduce(rbind) %>%
-    dplyr::select(-1:-2) %>%
+    dplyr::select(-seq_len(2)) %>%
     dplyr::select(city_code, city, geometry)
 
   if (nchar(jis_code[1]) > 3) {
@@ -119,7 +116,8 @@ jpn_cities <- function(jis_code, admin_name) {
 #' @importFrom rlang enquo
 #' @importFrom dplyr filter
 #' @importFrom purrr map reduce
-#' @return data.frame. contains follow columns jis_code, type, name, address, longitude and latitude.
+#' @return data.frame. contains follow columns jis_code,
+#' type, name, address, longitude and latitude.
 #' @examples
 #' \dontrun{
 #' jpn_admins(jis_code = 17)
