@@ -1,7 +1,7 @@
-12305185541b0c60f9dc38cb2de86a53 *DESCRIPTION
+26e35a186221148aec4efd5cd64917b6 *DESCRIPTION
 1a4a5f396786d95d6bfddbf60a46e773 *LICENSE
 1230a25ec30edbb5a339dad1110b9e0b *NAMESPACE
-1ce2a2d0c9f62546fefc80c8988ef0e5 *NEWS.md
+4b5c8b3a0a75bc3217dbd7836235276c *NEWS.md
 581a674133eb64fa51a23f8dae244b83 *R/city_name_table.R
 006851a14d0d4a56df72933b671c2a35 *R/code_validate.R
 e82d7cd5cb9824264407775543c08eb5 *R/data.R
@@ -10,7 +10,7 @@ d39cb95c6b9fb20666dc69923e8e32fc *R/export_mesh.R
 027f6e64fd620e93df92a0ecff2a7c14 *R/find_city.R
 c1c41a587af585180db3a7356fe55ffc *R/spdf_jpn.R
 ce35bb13f0b3fdd348d8b2e951894b6f *R/sysdata.rda
-bdafd306638771847c56b01f32c89a05 *R/util.R
+486ba86931f8e7eed7d7e4ab2a31902d *R/util.R
 8d2487dbf45064f33b08e5a80830b68e *R/utils-pipe.R
 51168bd8d24dd5da99d5adfdbc375ba8 *R/zzz.R
 e85eb87e665784a938160d5c3d97f56f *README.md
@@ -91,6 +91,6 @@ b37840f97613c5dcbb3597419598c03d *man/mesh_district.Rd
 6601e20efcf8e7042caf85d0a3be3c4b *man/which_pol_min.Rd
 ea0b99bb7d21943bc801f4e8c69c4c98 *tests/testthat.R
 e530ec6965b29d80f90ef76728fa69a0 *tests/testthat/test-export.R
-39bb39f75a44b3108f241fad937b1ecd *tests/testthat/test-find_city.R
+b5cb58707b2df6f756423c0040db8e9b *tests/testthat/test-find_city.R
 44ffbc6f7def0596536fec10a735bced *tests/testthat/test-spdf_jpn.R
-42fdb50fd5d227ac15f3391f2f3f0d2a *tests/testthat/test-util.R
+3b8bfaa585f068cf248f314e891d060e *tests/testthat/test-util.R

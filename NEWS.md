@@ -1,4 +1,8 @@
-# jpndistrict 0.3.5
+# jpndistrict 0.3.6
+
+- Changes to accomodate sf: st_make_valid no longer in lwgeom ([#32](https://github.com/uribo/jpndistrict/issues/32)).
+
+# jpndistrict 0.3.5 (2020-04-02)
 
 - Follow up sf v0.9.0 update.
 - The geometry of the dataset referenced inside the package was encoded by Google's Polyline Encoding Algorithm with googlePolylines. This has reduced the file size.
