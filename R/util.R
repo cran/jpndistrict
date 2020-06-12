@@ -79,16 +79,15 @@ path_ksj_cityarea <- function(code = NULL, path = NULL) {
     extract_path <- paste(tempdir(), pref_identifer,  sep = "/")
     # ksj zip file none
     if (is.null(path) & file.exists(dest_path) == FALSE) {
-      utils::download.file(
+      curl::curl_download(
         paste0(
-          "http://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-2015/N03-150101_",
+          "https://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-2015/N03-150101_",
           pref_identifer,
           "_GML.zip"
         ),
-        destfile <- dest_path,
-        method   <- "auto",
-        quiet    <- TRUE
-      )
+        destfile = dest_path,
+        handle = curl::new_handle(ssl_verifypeer = FALSE))
+
       utils::unzip(zipfile = dest_path,
                    exdir   = extract_path)
       path <- paste(extract_path, gsub(
@@ -188,11 +187,10 @@ read_ksj_p34 <- function(pref_code = NULL, path = NULL) {
     if (is.null(path) &
         file.exists(paste(tempdir(),
                           df_df_url$dest_file[pref_code], sep = "/")) == FALSE) {
-      utils::download.file(
+      curl::curl_download(
         df_df_url$zipFileUrl[pref_code],
         destfile = paste(tempdir(), df_df_url$dest_file[pref_code], sep = "/"),
-        method = "auto"
-      )
+        handle = curl::new_handle(ssl_verifypeer = FALSE))
       utils::unzip(
         zipfile = paste(tempdir(), df_df_url$dest_file[pref_code], sep = "/"),
         exdir   = paste(tempdir(), gsub(".zip", "", df_df_url$dest_file[pref_code]), sep = "/")
@@ -260,20 +258,11 @@ crs_4326 <-
 tweak_sf_output <- function(target) {
   target <-
     sf::st_sf(target)
-  if (utils::packageVersion("sf") <= numeric_version("0.8.1")) {
-    if (identical(sf::st_crs(target)$proj4string, crs_4326) != TRUE) {
+  if (identical(sf::st_crs(target)$input, "EPSG:4326") != TRUE)
       target <- sf::st_transform(target, crs = 4326)
-    }
-  } else {
-    if (identical(sf::st_crs(target)$input, "EPSG:4326") != TRUE) {
-      target <- sf::st_transform(target, crs = 4326)
-    }
-  }
-  res <-
-    target %>%
+  target %>%
     tibble::as_tibble() %>%
     sf::st_sf()
-  return(res)
 }
 
 sfg_point_as_coords <- function(geometry) {
@@ -306,7 +295,9 @@ mesh_intersect <- function(data, x) {
   df_tmp <- tibble::tibble(
     res_contains = suppressMessages(
       rowSums(sf::st_intersects(data,
-                                x,
+                                x %>%
+                                  group_by() %>%
+                                  summarise(do_union = FALSE),
                                 sparse = FALSE))))
   df_tmp$id <- seq_len(nrow(df_tmp))
   data[df_tmp %>%

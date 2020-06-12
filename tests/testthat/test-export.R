@@ -11,7 +11,7 @@ test_that("mesh_district", {
     c("sf", "data.frame", "tbl_df"))
   expect_equal(
     dim(d),
-    c(511L, 6L))
+    c(510L, 6L))
   expect_equal(
     dim(d2),
     c(54L, 6L))
@@ -22,5 +22,5 @@ test_that("mesh_district", {
       "geometry"
     )
   )
-  expect_equal(dim(d3), c(6246, 6))
+  expect_equal(dim(d3), c(6242, 6))
 })
