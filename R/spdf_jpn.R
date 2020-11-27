@@ -2,7 +2,7 @@
 #'
 #' @description Prefecture polygon data.
 #' @details Collect unit of prefecture simple feature data.frame objects..
-#' If downalod argument is *TRUE*, download administrative area data from
+#' If download argument is *TRUE*, download administrative area data from
 #' the National Land Numeral Information Download Service (for law data).
 #' @param pref_code jis code from 1 to 47
 #' @param admin_name prefecture names (string)
@@ -10,56 +10,57 @@
 #' @param download logical (default *FALSE*). IF *TRUE*, return raw data.
 #' @param drop_sinkyokyoku if *TRUE*, drop sichyo_sinkyokyoku variable
 #' (default *TRUE*)
-#' @importFrom dplyr matches mutate select
 #' @examples
 #' \dontrun{
 #' jpn_pref(pref_code = 33, district = FALSE)
 #' jpn_pref(pref_code = 14, district = TRUE)
 #' }
-#'
 #' @export
-jpn_pref <- function(pref_code,
+jpn_pref <- memoise::memoise(
+  function(pref_code,
                      admin_name,
                      district         = TRUE,
                      download         = FALSE,
                      drop_sinkyokyoku = TRUE) {
-  city_code <- city_name <- city_name_ <- city_name_full <- NULL # nolint
-  . <- geometry <- pref_name <- NULL # nolint
-
+    city_code <- city_name <- city_name_ <- city_name_full <- NULL # nolint
+    . <- geometry <- pref_name <- NULL # nolint
     if (missing(admin_name)) {
       pref_code <- collect_prefcode(code = pref_code)
     } else if (missing(pref_code)) {
       pref_code <- collect_prefcode(admin_name = admin_name)
     }
+    if (download == FALSE) {
+      d <-
+        readRDS(system.file(paste0("extdata/ksj_n03/pref_", pref_code, ".rds"),
+                               package = "jpndistrict")) %>%
+        decode.sfencoded()
+    } else {
+      d <-
+        read_ksj_cityarea(code = as.numeric(pref_code)) %>%  # nocov
+        dplyr::mutate(pref_code = as.character(pref_code),
+                      city_name_full = purrr::pmap_chr(.,
+                                                       ~ cityname_reform(..4))) %>% # nolint
+        dplyr::select(pref_code, pref_name,
+                      city_code, city = city_name_full,
+                      city_name_, city_name, geometry)
+    }
 
-  if (download == FALSE) {
-    d <- readRDS(system.file(paste0("extdata/ksj_n03/pref_", pref_code, ".rds"),
-                             package = "jpndistrict")) %>%
-      decode.sfencoded()
-  } else {
-    d <-
-      read_ksj_cityarea(code = as.numeric(pref_code)) %>%  # nocov
-      dplyr::mutate(pref_code = as.character(pref_code),
-                    city_name_full = purrr::pmap_chr(.,
-                                                     ~ cityname_reform(..4))) %>% # nolint
-      dplyr::select(pref_code, pref_name,
-                    city_code, city = city_name_full,
-                    city_name_, city_name, geometry)
-  }
+    if (drop_sinkyokyoku == TRUE) {
+      d <-
+        dplyr::select(d, -dplyr::matches("sichyo_sinkyokyoku"))
+    }
 
-  if (drop_sinkyokyoku == TRUE) {
-    d <- dplyr::select(d, -dplyr::matches("sichyo_sinkyokyoku"))
+    if (district == TRUE) {
+      res <- d
+    } else {
+      res <-
+        raw_bind_cityareas(d) %>%
+        dplyr::mutate(pref_code = as.character(pref_code))
+    }
+    res %>%
+      tweak_sf_output()
   }
-
-  if (district == TRUE) {
-    res <- d
-  } else {
-    res <- raw_bind_cityareas(d) %>%
-      dplyr::mutate(pref_code = as.character(pref_code))
-  }
-  res %>%
-    tweak_sf_output()
-}
+)
 
 
 #' Simple features for city area polygons
@@ -68,7 +69,6 @@ jpn_pref <- function(pref_code,
 #' (jis_code_city) or code (jis_code_city) is specified as an argument,
 #' the target city data is extracted. If neither is given,
 #' it becomes the data of the target prefecture.
-#' @importFrom dplyr filter
 #' @inheritParams code_validate
 #' @param admin_name administration name
 #' @examples
@@ -114,9 +114,6 @@ jpn_cities <- function(jis_code, admin_name) {
 #'
 #' @description Name and geolocations for administration offices in prefecture.
 #' @inheritParams code_validate
-#' @importFrom rlang enquo
-#' @importFrom dplyr filter
-#' @importFrom purrr map reduce
 #' @return data.frame. contains follow columns jis_code,
 #' type, name, address, longitude and latitude.
 #' @examples
@@ -139,7 +136,5 @@ jpn_admins <- function(jis_code) {
     } else {
       res <- d
     }
-
   return(res)
-
 }

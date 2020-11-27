@@ -1,9 +1,6 @@
 #' Collect administration office point datasets.
 #'
 #' @param path path to P34 shapefile (if already exist)
-#' @importFrom sf st_read
-#' @importFrom dplyr mutate if_else
-#' @importFrom purrr set_names
 collect_ksj_p34 <- function(path = NULL) {
   jis_code <- NULL
   code <- gsub(".+P34-14_|_GML|/", "", path)
@@ -22,8 +19,6 @@ collect_ksj_p34 <- function(path = NULL) {
 #' Intermediate function
 #'
 #' @param pref sf object (prefecture)
-#' @importFrom dplyr mutate
-#' @importFrom sf st_buffer st_sf st_union
 raw_bind_cityareas <- function(pref) {
   tmp_union <-
     suppressMessages(suppressWarnings(sf::st_buffer(pref, 0) %>%
@@ -57,7 +52,8 @@ read_ksj_cityarea <- function(code = NULL, path = NULL) {
   if (missing(path)) {
     path <- path_ksj_cityarea(code)
   }
-  res <- collect_cityarea(path)
+  res <-
+    collect_cityarea(path)
   return(res)
   # nocov end
 }
@@ -66,8 +62,6 @@ read_ksj_cityarea <- function(code = NULL, path = NULL) {
 #'
 #' @param code prefecture code (JIS X 0402)
 #' @param path path to N03 shapefile (if already exist)
-#' @importFrom utils download.file
-#' @importFrom utils unzip
 path_ksj_cityarea <- function(code = NULL, path = NULL) {
   # nocov start
   if (missing(path)) {
@@ -110,8 +104,6 @@ path_ksj_cityarea <- function(code = NULL, path = NULL) {
 #' @description Get prefecture code from prefecture of name or number.
 #' @param code numeric
 #' @param admin_name prefecture code for Japanese (character)
-#' @importFrom dplyr filter mutate pull
-#' @importFrom purrr pmap_chr
 collect_prefcode <- function(code = NULL, admin_name = NULL) {
   jis_code <- prefecture <- NULL
   if (missing(admin_name)) {
@@ -130,8 +122,6 @@ collect_prefcode <- function(code = NULL, admin_name = NULL) {
 #' Collect administration area
 #'
 #' @param path path to N03 shapefile (if already exist)
-#' @import dplyr
-#' @import sf
 collect_cityarea <- function(path = NULL) {
   # nocov start
   . <- N03_001 <- N03_002 <- N03_003 <- N03_004 <- N03_007 <- tmp_var <- NULL # nolint
@@ -176,8 +166,6 @@ collect_cityarea <- function(path = NULL) {
 #'
 #' @param pref_code prefecture code (JIS X 0402)
 #' @param path path to P34 shapefile (if already exist)
-#' @importFrom utils download.file
-#' @importFrom utils unzip
 read_ksj_p34 <- function(pref_code = NULL, path = NULL) {
   # nolint start
   if (missing(path)) {
@@ -193,11 +181,18 @@ read_ksj_p34 <- function(pref_code = NULL, path = NULL) {
         handle = curl::new_handle(ssl_verifypeer = FALSE))
       utils::unzip(
         zipfile = paste(tempdir(), df_df_url$dest_file[pref_code], sep = "/"),
-        exdir   = paste(tempdir(), gsub(".zip", "", df_df_url$dest_file[pref_code]), sep = "/")
-      )
-      path <- paste(tempdir(), gsub(".zip", "", df_df_url$dest_file[pref_code]), sep = "/")
-    } else if (file.exists(paste(tempdir(), df_df_url$dest_file[pref_code], sep = "/")) == TRUE) {
-      path <- paste(tempdir(), gsub(".zip", "", df_df_url$dest_file[pref_code]), sep = "/") # nocov
+        exdir   = paste(tempdir(), gsub(".zip", "",
+                                        df_df_url$dest_file[pref_code]),
+                        sep = "/"))
+      path <- paste(tempdir(), gsub(".zip", "",
+                                    df_df_url$dest_file[pref_code]),
+                    sep = "/")
+    } else if (file.exists(paste(tempdir(),
+                                 df_df_url$dest_file[pref_code],
+                                 sep = "/")) == TRUE) {
+      path <- paste(tempdir(), gsub(".zip", "",
+                                    df_df_url$dest_file[pref_code]),
+                    sep = "/") # nocov
     }
     res <- collect_ksj_p34(path = path)
   } else {
@@ -212,8 +207,6 @@ read_ksj_p34 <- function(pref_code = NULL, path = NULL) {
 #' @param longitude longitude
 #' @param latitude latitude
 #' @param ... export parameter to other functions
-#' @importFrom purrr map reduce
-#' @importFrom sf st_contains st_point
 #' @name which_pol_min
 which_pol_min <- function(longitude, latitude, ...) {
   pref_code <- NULL
@@ -240,7 +233,7 @@ which_pol_min <- function(longitude, latitude, ...) {
       ))
     if (length(which_row) > 1) {
       which_row <-
-        which.min(sf::st_distance(st_sfc(x, crs = 4326),
+        which.min(sf::st_distance(sf::st_sfc(x, crs = 4326),
                                   sp_polygon,
                                   by_element = TRUE))
       sp_polygon <-
@@ -259,10 +252,12 @@ tweak_sf_output <- function(target) {
   target <-
     sf::st_sf(target)
   if (identical(sf::st_crs(target)$input, "EPSG:4326") != TRUE)
-      target <- sf::st_transform(target, crs = 4326)
+      target <-
+      sf::st_transform(target, crs = 4326)
   target %>%
     tibble::as_tibble() %>%
-    sf::st_sf()
+    sf::st_sf() %>%
+    sf::st_make_valid()
 }
 
 sfg_point_as_coords <- function(geometry) {
@@ -291,15 +286,16 @@ export_pref_80km_mesh <- function(code, ...) {
 }
 
 mesh_intersect <- function(data, x) {
-  res_contains <- NULL
+  id <- res_contains <- NULL
   df_tmp <- tibble::tibble(
     res_contains = suppressMessages(
       rowSums(sf::st_intersects(data,
                                 x %>%
-                                  group_by() %>%
-                                  summarise(do_union = FALSE),
+                                  dplyr::group_by() %>%
+                                  dplyr::summarise(do_union = FALSE),
                                 sparse = FALSE))))
-  df_tmp$id <- seq_len(nrow(df_tmp))
+  df_tmp$id <-
+    seq_len(nrow(df_tmp))
   data[df_tmp %>%
          dplyr::filter(res_contains != 0) %>%
          dplyr::pull(id) %>%
@@ -307,18 +303,14 @@ mesh_intersect <- function(data, x) {
 }
 
 mesh_intersect_filter <- function(data) {
-  . <- meshcode <- out <- NULL # nolint
+  meshcode <- NULL # nolint
   data %>%
     dplyr::pull(meshcode) %>%
-    purrr::map(jpmesh::fine_separate) %>%
-    rlang::flatten_chr() %>%
+    jpmesh::fine_separate() %>%
     unique() %>%
     tibble::enframe(name = NULL, value = "meshcode") %>%
-    dplyr::mutate(out = purrr::map(meshcode, ~ jpmesh::mesh_to_coords(.x))) %>%
-    tidyr::unnest_wider(col = out) %>%
-    dplyr::select(meshcode, tidyselect::everything()) %>%
-    dplyr::mutate(geometry = purrr::pmap(., ~ jpmesh:::mesh_to_poly(...))) %>%
-    sf::st_sf(crs = 4326, stringsAsFactors = FALSE)
+    jpmesh::meshcode_sf(mesh_var = "meshcode") %>%
+    dplyr::select(meshcode, tidyselect::everything())
 }
 
 decode.sfencoded <- function(x, crs = 4326) { # nolint
@@ -329,7 +321,7 @@ decode.sfencoded <- function(x, crs = 4326) { # nolint
 }
 
 decode.sf <- function(x) { # nolint
-  crs <- st_crs(x)
+  crs <- sf::st_crs(x)
   geometry <- NULL
   googlePolylines::encode(x) %>%
     googlePolylines::polyline_wkt() %>%
