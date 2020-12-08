@@ -1,8 +1,8 @@
-44613ca5dfea89903e590fcd23cac6de *DESCRIPTION
+e113f4a21828ac9fdf53ba427ff6c0e8 *DESCRIPTION
 1a4a5f396786d95d6bfddbf60a46e773 *LICENSE
-17957fd5d4ae562043912049fd77da7d *NAMESPACE
-99ffc0d19cfb1e826eff5eedf1c16328 *NEWS.md
-70fd2033171cc110eee2597c63c74a43 *R/city_name_table.R
+45409a19e489c4edc446fd76e237e44a *NAMESPACE
+bc4d9702c8b986b1e7c8c46da757eacb *NEWS.md
+56da5055ef279092abd47fa5e9f7bc8f *R/city_name_table.R
 006851a14d0d4a56df72933b671c2a35 *R/code_validate.R
 e82d7cd5cb9824264407775543c08eb5 *R/data.R
 afcd0d5a9c3dc74f1db34bd4d2eb9379 *R/district_viewer.R
@@ -74,10 +74,10 @@ a2a3f7efc8c1c62181b87b392551c77d *man/collect_ksj_p34.Rd
 ea9707f2a15b2081e084fde76247ba6f *man/district_viewer.Rd
 a0a26a6c493243f9c1b85ecde6a1ab7c *man/figures/logo.png
 96f33042df0453fcf7e096d4c3474151 *man/find_city.Rd
-c17bab9eb91b284f0084005476abe7f2 *man/find_jis_code.Rd
+194cc9bce009273e449b5a9e4e0c9ca3 *man/find_jis_code.Rd
 26e811ab5cae3dfb381f7e2a1e25f1c5 *man/find_pref.Rd
 2e9cb2e3f7308ee8db669374ef081baa *man/find_prefs.Rd
-fe8d58cba0859ffb95371595ab6cf47d *man/jpn_admins.Rd
+df99cbe76d675ab7aa6d48a5737a1bfd *man/jpn_admins.Rd
 439804920b2558a21c90fe7b66913184 *man/jpn_cities.Rd
 b1311a4436fa61ff6be4c2d78d2709b2 *man/jpn_pref.Rd
 31ec805646dad7ca548b271751f3daf0 *man/jpnprefs.Rd
